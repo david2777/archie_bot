@@ -9,6 +9,8 @@ class EventID(Enum):
     OTHER = auto()
     EAT = auto()
     MEDICINE = auto()
+    CLOMIPRAMINE = auto()
+    TRIFEXIS = auto()
     WALK = auto()
     PLAY = auto()
     TRAINING = auto()
@@ -16,13 +18,6 @@ class EventID(Enum):
     GROOM = auto()
     PEE = auto()
     POOP = auto()
-
-    @property
-    def event_color(self):
-        return _color_dict.get(self.name, 'gray')
-
-
-_color_dict = {EventID.PEE.name: 'blue'}
 
 
 class User(db.Model):
@@ -37,26 +32,28 @@ class User(db.Model):
 class Dog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), index=True, unique=True)
-    events = db.relationship('Event', order_by='asc(Event.timestamp)', lazy='dynamic', back_populates='dog')
+    birthday = db.Column(db.Date)
+    events = db.relationship('Event', order_by='asc(Event.id)', lazy='dynamic', back_populates='dog')
 
     def __repr__(self):
         return '<Dog {} [{}]>'.format(self.id, self.name)
 
 
 class Event(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, index=True, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship('User')
     dog_id = db.Column(db.Integer, db.ForeignKey('dog.id'))
     dog = db.relationship('Dog', back_populates='events')
     event_id = db.Column(db.Enum(EventID))
     note = db.Column(db.String(128))
-    timestamp = db.Column(db.DateTime, index=True, default=datetime.now)
-    date = db.Column(db.DateTime, index=True, default=date.today)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    start_time = db.Column(db.DateTime, index=True, default=datetime.now)
+    end_time = db.Column(db.DateTime, index=True)
     is_accident = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
-        return '<Event {} [{} @ {}]>'.format(self.id, self.event_id, self.timestamp)
+        return '<Event {} [{}]>'.format(self.id, self.event_id)
 
     @property
     def event_type(self):
@@ -72,4 +69,49 @@ class Event(db.Model):
 
     @property
     def event_entry(self):
-        return 'Entered by {0} at {1}'.format(self.user.username, self.timestamp.strftime("%I:%M %p"))
+        return 'Entered by {0} at {1}'.format(self.user.username, self.start_time.strftime("%I:%M %p"))
+
+
+def add_test_data():
+    # Users
+    db.session.add(User(username='David'))
+    db.session.add(User(username='Judy'))
+
+    # Dogs
+    db.session.add(Dog(name='Archie', birthday=date.fromtimestamp(1547467200)))
+
+    e = Event(user_id=1, dog_id=1, event_id=EventID.EAT, start_time=datetime.fromtimestamp(15873966000))
+    db.session.add(e)
+
+    e = Event(user_id=1, dog_id=1, event_id=EventID.CLOMIPRAMINE, start_time=datetime.fromtimestamp(15873966001))
+    db.session.add(e)
+
+    e = Event(user_id=1, dog_id=1, event_id=EventID.WALK, start_time=datetime.fromtimestamp(1587399300),
+              end_time=datetime.fromtimestamp(1587400645))
+    db.session.add(e)
+
+    e = Event(user_id=1, dog_id=1, event_id=EventID.PEE, start_time=datetime.fromtimestamp(1587399745))
+    db.session.add(e)
+
+    e = Event(user_id=1, dog_id=1, event_id=EventID.POOP, start_time=datetime.fromtimestamp(1587399925))
+    db.session.add(e)
+
+    e = Event(user_id=1, dog_id=1, event_id=EventID.PLAY, start_time=datetime.fromtimestamp(1587405205),
+              end_time=datetime.fromtimestamp(1587406285), note='Played fetch and rope tug')
+    db.session.add(e)
+
+    e = Event(user_id=1, dog_id=1, event_id=EventID.PEE, start_time=datetime.fromtimestamp(1587409345),
+              is_accident=True)
+    db.session.add(e)
+
+    e = Event(user_id=1, dog_id=1, event_id=EventID.BATH, start_time=datetime.fromtimestamp(1587419425))
+    db.session.add(e)
+
+    e = Event(user_id=1, dog_id=1, event_id=EventID.GROOM, start_time=datetime.fromtimestamp(1587419425))
+    db.session.add(e)
+
+    e = Event(user_id=1, dog_id=1, event_id=EventID.TRAINING, start_time=datetime.fromtimestamp(1587428545),
+              end_time=datetime.fromtimestamp(1587430405))
+    db.session.add(e)
+
+    db.session.commit()

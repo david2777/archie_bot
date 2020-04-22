@@ -15,7 +15,7 @@ def index():
     data = {}
     dogs = models.Dog.query.all()
     for d in dogs:
-        events = d.events.filter(func.DATE(models.Event.date == date.today())).all()
+        events = d.events.all()
         data[d] = events
 
     kwargs = {'user': user,
