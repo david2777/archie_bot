@@ -1,0 +1,19 @@
+.well {
+    padding: 10px;
+}
+
+.pee, .poop {
+    background-color: #FEFFBF;
+}
+
+.eat, .medicine {
+    background-color: #B5EABC;
+}
+
+.walk, .play, .training {
+    background-color: #FFDAC1;
+}
+
+.bath, .groom {
+    background-color: #C7CEEA;
+}

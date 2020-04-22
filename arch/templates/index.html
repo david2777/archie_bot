@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome to ArchieBot{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Good {{ time_of_day }}, {{ user.username }}</h1>
+        {% for dog in data %}
+        <h2>
+            {{ dog.name }}
+            <a class="btn btn-default" href="{{ url_for('add_event') }}" role="button">Add Event</a>
+        </h2>
+        {% for event in data[dog] %}
+            {% include 'partials/event_item.html' %}
+        {% endfor %}
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Event - Archie Bot{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Editing Event</h1>
+    <h3>id: {{ event.id }}</h3>
+    <h3>user: {{ event.user.username }}</h3>
+    <h3>dog: {{ event.dog.name }}</h3>
+    <h3>event_id: {{ event.event_id.name }}</h3>
+    <h3>note: {{ event.note }}</h3>
+    <h3>timestamp: {{ event.timestamp }}</h3>
+    <h3>date: {{ event.date }}</h3>
+    <h3>is_accident: {{ event.is_accident }}</h3>
+</div>
+{% endblock %}

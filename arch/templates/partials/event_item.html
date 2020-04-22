@@ -1,0 +1,14 @@
+<div class="well {{event.event_type}}">
+    <h4>
+        {{event.event_string}}
+        {% if event.is_accident %}
+        <img src="{{ url_for('static', filename='warning.svg') }}">
+        {% endif %}
+    </h4>
+    {% if event.event_info %}
+        {{event.event_info}}
+        <br>
+    {% endif %}
+    {{event.event_entry}}
+    <a class="btn close" href="{{ url_for('edit_event', event_id=event.id) }}" role="button">Edit</a>
+</div>
