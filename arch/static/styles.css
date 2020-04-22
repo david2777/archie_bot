@@ -1,12 +1,8 @@
-.well {
-    padding: 10px;
-}
-
 .pee, .poop {
     background-color: #FEFFBF;
 }
 
-.eat, .medicine {
+.eat, .medicine, .clomipramine, .trifexis {
     background-color: #B5EABC;
 }
 

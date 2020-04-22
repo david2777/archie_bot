@@ -1,7 +1,6 @@
 from datetime import date
 
 from flask import render_template, request
-from sqlalchemy import func
 
 from arch import app, models
 from arch import utils
@@ -21,6 +20,7 @@ def index():
     kwargs = {'user': user,
               'title': 'Home',
               'time_of_day': utils.get_tod(),
+              'today': date.today().strftime('%m/%d/%Y'),
               'data': data}
 
     return render_template('index.html', **kwargs)
