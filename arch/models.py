@@ -40,12 +40,14 @@ class Dog(db.Model):
 
 
 class Event(db.Model):
+    # Required
     id = db.Column(db.Integer, index=True, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship('User')
     dog_id = db.Column(db.Integer, db.ForeignKey('dog.id'))
     dog = db.relationship('Dog', back_populates='events')
     event_id = db.Column(db.Enum(EventID))
+    # Optional
     note = db.Column(db.String(128))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     start_time = db.Column(db.DateTime, index=True, default=datetime.now)
