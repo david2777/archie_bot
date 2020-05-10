@@ -50,8 +50,8 @@ class Event(db.Model):
     # Optional
     note = db.Column(db.String(128))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    start_time = db.Column(db.DateTime, index=True, default=datetime.now)
-    end_time = db.Column(db.DateTime, index=True)
+    start_time = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    end_time = db.Column(db.DateTime)
     is_accident = db.Column(db.Boolean, default=False)
 
     def __repr__(self):

@@ -42,12 +42,24 @@ def edit_event(event_id):
 
 @app.route('/add_event.html', methods=['GET', 'POST'])
 def add_event():
-    form = forms.AddEventForm(flask.request.form)
-    if form.validate_on_submit():
-        app.logger.info('Submitted')
-        flask.flash('Submitted {}'.format(form.note.data))
+    f = forms.AddEventForm(flask.request.form)
+    if f.validate_on_submit():
+        app.logger.info('Submission Validated')
+
+        e = models.Event(user_id=int(f.user.data),
+                         dog_id=int(f.dog.data[0]),
+                         event_id=models.EventID[f.event.data],
+                         start_time=f.start_time.data if f.start_time.data else None,
+                         end_time=f.end_time.data if f.end_time.data else None,
+                         note=f.note.data if f.note.data else None,
+                         is_accident=f.accident.data)
+        db.session.add(e)
+        db.session.commit()
+
+        flask.flash('Submitted Event: {}'.format(e.id))
         return flask.redirect(flask.url_for('index'))
-    return flask.render_template('add_event.html', form=form)
+
+    return flask.render_template('add_event.html', form=f)
 
 
 @app.route('/add_event_webhook.html', methods=['POST', 'GET'])
