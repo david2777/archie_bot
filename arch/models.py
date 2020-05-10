@@ -63,7 +63,14 @@ class Event(db.Model):
 
     @property
     def event_string(self):
-        return '{} - {}'.format(self.event_id.name.capitalize(), self.dog.name)
+        duration_string = ""
+        if self.start_time and self.end_time:
+            duration = self.end_time - self.start_time
+            s = duration.total_seconds()
+            hours, remainder = divmod(s, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            duration_string = ' - {:01}:{:02}:{:02}'.format(int(hours), int(minutes), int(seconds))
+        return '{0} - {1}{2}'.format(self.event_id.name.capitalize(), self.dog.name, duration_string)
 
     @property
     def event_info(self):
@@ -71,7 +78,11 @@ class Event(db.Model):
 
     @property
     def event_entry(self):
-        return 'Entered by {0} at {1}'.format(self.user.username, self.start_time.strftime("%I:%M %p"))
+        note_string = ''
+        if self.note:
+            note_string = ' - {}'.format(self.note)
+        nice_time = self.start_time.strftime("%I:%M %p")
+        return '{0} @ {1}{2}'.format(self.user.username, nice_time, note_string)
 
 
 def add_test_data():
