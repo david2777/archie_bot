@@ -8,8 +8,9 @@ from arch import models
 
 class AddEventForm(FlaskForm):
     user = wtforms.SelectField('User', choices=[(1, 'David'), (2, 'Judy')], coerce=int)
-    dog = wtforms.SelectMultipleField('Dog', choices=[(1, 'Archie'), (2, 'EvilArchie')], coerce=int)
-    choices = [(str(i.name), str(i.name).capitalize()) for i in models.EventID]
+    dog = wtforms.SelectMultipleField('Dog', choices=[(1, 'Archie'), (2, 'EvilArchie')], coerce=int,
+                                      validators=[validators.data_required()])
+    choices = [(str(i.name), str(i.name).capitalize()) for i in models.EventEnum]
     event = wtforms.SelectField('Event', choices=choices)
     start_time = html5.TimeField('Start Time', validators=[validators.Optional()], default=None)
     end_time = html5.TimeField('End Time', validators=[validators.Optional()], default=None)

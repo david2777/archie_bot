@@ -20,11 +20,12 @@ def log_and_return_error(error, *args, exception=False):
 @app.route('/')
 @app.route('/index.html')
 def index():
+    events = [e for e in models.Event.query.all() if e.display]
     kwargs = {'user': models.User.query.get(1),
               'title': 'Home',
               'time_of_day': utils.get_tod(),
               'today': date.today().strftime('%m/%d/%Y'),
-              'events': models.Event.query.all()}
+              'events': events}
 
     return flask.render_template('index.html', **kwargs)
 
@@ -47,16 +48,19 @@ def add_event():
         app.logger.info('Submission Validated')
 
         e = models.Event(user_id=int(f.user.data),
-                         dog_id=int(f.dog.data[0]),
-                         event_id=models.EventID[f.event.data],
+                         event_enum=models.EventEnum[f.event.data],
                          start_time=f.start_time.data if f.start_time.data else None,
                          end_time=f.end_time.data if f.end_time.data else None,
                          note=f.note.data if f.note.data else None,
                          is_accident=f.accident.data)
+
+        dogs = models.Dog.query.filter(models.Dog.dog_id.in_(tuple(f.dog.data)))
+        e.dogs += dogs
+
         db.session.add(e)
         db.session.commit()
 
-        flask.flash('Submitted Event: {}'.format(e.id))
+        flask.flash('Submitted Event: {}'.format(e.event_id))
         return flask.redirect(flask.url_for('index'))
 
     return flask.render_template('add_event.html', form=f)
@@ -97,7 +101,7 @@ def add_event_webhook():
 
     # Resolve User
     try:
-        or_filter = or_(models.User.username == user or models.User.id == user)
+        or_filter = or_(models.User.username == user or models.User.user_id == user)
         user_search = models.User.query.filter(or_filter).all()
     except Exception:
         return log_and_return_error("Bad query for user with '%s'", user, exception=True)
@@ -111,7 +115,7 @@ def add_event_webhook():
 
     # Resolve Dog
     try:
-        or_filter = or_(models.Dog.name == dog or models.Dog.id == dog)
+        or_filter = or_(models.Dog.name == dog or models.Dog.dog_id == dog)
         dog_search = models.Dog.query.filter(or_filter).all()
     except Exception:
         return log_and_return_error("Bad query for dog with '%s'", dog, exception=True)
@@ -125,17 +129,17 @@ def add_event_webhook():
 
     # Resolve Event ID
     try:
-        event_id = models.EventID(int(event))
+        event_enum = models.EventEnum(int(event))
     except ValueError:
         try:
-            event_id = models.EventID[event]
+            event_enum = models.EventEnum[event]
         except KeyError:
-            return log_and_return_error("Unable to resolve EventID from '%s'", event)
+            return log_and_return_error("Unable to resolve EventEnum from '%s'", event)
 
     # Get remainder of user data
     event_data = {'user': user_object,
                   'dog': dog_object,
-                  'event_id': event_id}
+                  'event_enum': event_enum}
 
     for check in ['note', 'timestamp', 'start_time', 'end_time', 'is_accident']:
         try:
@@ -150,4 +154,4 @@ def add_event_webhook():
     db.session.commit()
 
     app.logger.info(event)
-    return str({"success": "true", "event_id": event.id})
+    return str({"success": "true", "event_id": event.event_id})

@@ -4,7 +4,7 @@ from datetime import datetime, date
 from arch import db
 
 
-class EventID(Enum):
+class EventEnum(Enum):
     TEST = auto()
     OTHER = auto()
     EAT = auto()
@@ -20,46 +20,53 @@ class EventID(Enum):
     POOP = auto()
 
 
+association_table = db.Table('assoc',
+                             db.Column('event_id', db.Integer, db.ForeignKey('events.event_id')),
+                             db.Column('dog_id', db.Integer, db.ForeignKey('dogs.dog_id'))
+                             )
+
+
 class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    __tablename__ = 'users'
+    user_id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
     password_hash = db.Column(db.String(128))
 
     def __repr__(self):
-        return '<User {} [{}]>'.format(self.id, self.username)
+        return '<User {} [{}]>'.format(self.user_id, self.username)
 
 
 class Dog(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    __tablename__ = 'dogs'
+    dog_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), index=True, unique=True)
     birthday = db.Column(db.Date)
-    events = db.relationship('Event', order_by='asc(Event.id)', lazy='dynamic', back_populates='dog')
 
     def __repr__(self):
-        return '<Dog {} [{}]>'.format(self.id, self.name)
+        return '<Dog {} [{}]>'.format(self.dog_id, self.name)
 
 
 class Event(db.Model):
+    __tablename__ = 'events'
     # Required
-    id = db.Column(db.Integer, index=True, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    event_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
     user = db.relationship('User')
-    dog_id = db.Column(db.Integer, db.ForeignKey('dog.id'))
-    dog = db.relationship('Dog', back_populates='events')
-    event_id = db.Column(db.Enum(EventID))
+    event_enum = db.Column(db.Enum(EventEnum))
+    dogs = db.relationship('Dog', secondary=association_table)
     # Optional
+    display = db.Column(db.Boolean, default=True)
     note = db.Column(db.String(128))
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     start_time = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     end_time = db.Column(db.DateTime)
     is_accident = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
-        return '<Event {} [{}]>'.format(self.id, self.event_id)
+        return '<Event {} [{}]>'.format(self.event_id, self.event_enum)
 
     @property
     def event_type(self):
-        return self.event_id.name.lower()
+        return self.event_enum.name.lower()
 
     @property
     def event_string(self):
@@ -70,7 +77,8 @@ class Event(db.Model):
             hours, remainder = divmod(s, 3600)
             minutes, seconds = divmod(remainder, 60)
             duration_string = ' - {:01}:{:02}:{:02}'.format(int(hours), int(minutes), int(seconds))
-        return '{0} - {1}{2}'.format(self.event_id.name.capitalize(), self.dog.name, duration_string)
+        dogs = ', '.join([d.name for d in self.dogs])
+        return '{0} - {1}{2}'.format(self.event_enum.name.capitalize(), dogs, duration_string)
 
     @property
     def event_info(self):
@@ -86,45 +94,65 @@ class Event(db.Model):
 
 
 def add_test_data():
+    t = datetime.fromtimestamp
+
     # Users
-    db.session.add(User(username='David'))
-    db.session.add(User(username='Judy'))
+    david = User(username='David')
+    db.session.add(david)
+
+    judy = User(username='Judy')
+    db.session.add(judy)
 
     # Dogs
-    db.session.add(Dog(name='Archie', birthday=date.fromtimestamp(1547467200)))
+    archie = Dog(name='Archie', birthday=t(1547467200))
+    db.session.add(archie)
 
-    e = Event(user_id=1, dog_id=1, event_id=EventID.EAT, start_time=datetime.fromtimestamp(15873966000))
+    evil_archie = Dog(name='Evil Archie', birthday=t(1547467200))
+    db.session.add(evil_archie)
+
+    # Events
+    e = Event(user=david, event_enum=EventEnum.EAT, start_time=t(15873966000))
+    e.dogs.append(archie)
+    e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user_id=1, dog_id=1, event_id=EventID.CLOMIPRAMINE, start_time=datetime.fromtimestamp(15873966001))
+    e = Event(user=david, event_enum=EventEnum.CLOMIPRAMINE, start_time=t(15873966001))
+    e.dogs.append(archie)
+    e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user_id=1, dog_id=1, event_id=EventID.WALK, start_time=datetime.fromtimestamp(1587399300),
-              end_time=datetime.fromtimestamp(1587400645))
+    e = Event(user=david, event_enum=EventEnum.WALK, start_time=t(1587399300), end_time=t(1587400645))
+    e.dogs.append(archie)
+    e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user_id=1, dog_id=1, event_id=EventID.PEE, start_time=datetime.fromtimestamp(1587399745))
+    e = Event(user=david, event_enum=EventEnum.PEE, start_time=t(1587399745))
+    e.dogs.append(archie)
     db.session.add(e)
 
-    e = Event(user_id=1, dog_id=1, event_id=EventID.POOP, start_time=datetime.fromtimestamp(1587399925))
+    e = Event(user=david, event_enum=EventEnum.POOP, start_time=t(1587399925))
+    e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user_id=1, dog_id=1, event_id=EventID.PLAY, start_time=datetime.fromtimestamp(1587405205),
-              end_time=datetime.fromtimestamp(1587406285), note='Played fetch and rope tug')
+    e = Event(user=judy, event_enum=EventEnum.PLAY, start_time=t(1587405205), end_time=t(1587406285),
+              note='Played fetch and rope tug')
+    e.dogs.append(archie)
     db.session.add(e)
 
-    e = Event(user_id=1, dog_id=1, event_id=EventID.PEE, start_time=datetime.fromtimestamp(1587409345),
-              is_accident=True)
+    e = Event(user=judy, event_enum=EventEnum.PEE, start_time=t(1587409345), is_accident=True)
+    e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user_id=1, dog_id=1, event_id=EventID.BATH, start_time=datetime.fromtimestamp(1587419425))
+    e = Event(user=judy, event_enum=EventEnum.BATH, start_time=t(1587419425))
+    e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user_id=1, dog_id=1, event_id=EventID.GROOM, start_time=datetime.fromtimestamp(1587419425))
+    e = Event(user=judy, event_enum=EventEnum.GROOM, start_time=t(1587419425))
+    e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user_id=1, dog_id=1, event_id=EventID.TRAINING, start_time=datetime.fromtimestamp(1587428545),
-              end_time=datetime.fromtimestamp(1587430405))
+    e = Event(user=judy, event_enum=EventEnum.TRAINING, start_time=t(1587428545), end_time=t(1587430405), note='Stay')
+    e.dogs.append(archie)
     db.session.add(e)
 
     db.session.commit()
