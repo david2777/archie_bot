@@ -38,11 +38,7 @@ def edit_event(event_id):
 @app.route('/add_event.html', methods=['GET', 'POST'])
 def add_event():
     form = forms.AddEventForm(flask.request.form)
-    app.logger.info('%s', form.validate())
-    if flask.request.method == 'POST':
-        for f in [form.user, form.dog, form.event, form.start_time, form.end_time, form.accident, form.note, form.submit]:
-            app.logger.info(f.errors)
-    if flask.request.method == "POST" and form.validate():
+    if form.validate_on_submit():
         app.logger.info('Submitted')
         flask.flash('Submitted {}'.format(form.note.data))
         return flask.redirect(flask.url_for('index'))
