@@ -1,10 +1,10 @@
 <div class="alert {{event.event_type}}">
-    <h4>
+    <h5>
         {{event.event_string}}
         {% if event.is_accident %}
         <img src="{{ url_for('static', filename='warning.svg') }}">
         {% endif %}
-    </h4>
+    </h5>
     {% if event.event_info %}
         {{event.event_info}}
         <br>

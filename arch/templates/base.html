@@ -16,6 +16,17 @@
         {% endblock %}
     </head>
     <body>
+        {% block navbar %}
+
+        <nav class="navbar navbar-light bg-light">
+            <div class="container d-inline">
+            <a class="navbar-brand mb-0" href="{{ url_for('index') }}">ArchieBot</a>
+            <a class="btn btn-outline-success my-2 my-sm-0" role="button" type="button" href="{{ url_for('add_event') }}">Add Event</a>
+            </div>
+        </nav>
+
+        {% endblock %}
+
         <!-- Your page content -->
         {% block content %}{% endblock %}
 

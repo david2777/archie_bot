@@ -5,5 +5,31 @@
 {% block content %}
 <div class="container">
     <h1>Adding Event</h1>
+    <form class="form" role="form" action="" method="post" novalidate>
+        {{ form.hidden_tag() }}
+        {{ form.csrf_token() }}
+
+        <h5>{{ form.user.label }}</h5>
+        <p>{{ form.user(class='form-control') }}</p>
+
+        <h5>{{ form.dog.label }} {{ form.all_dog_checkbox(class='form-control-inline') }}</h5>
+        <p>{{ form.dog(class='form-control') }}</p>
+
+        <h5>{{ form.event.label }}</h5>
+        <p>{{ form.event(class='form-control') }}</p>
+
+        <h5>{{ form.start_time.label }}</h5>
+        <p>{{ form.start_time(class='form-control') }}</p>
+
+        <h5>{{ form.end_time.label }}</h5>
+        <p>{{ form.end_time(class='form-control') }}</p>
+
+        <h5>{{ form.note.label }}</h5>
+        <p>{{ form.note(class='form-control') }}</p>
+
+        <h5>{{ form.accident(class='form-check-inline') }} {{ form.accident.label }}</h5>
+
+        <p>{{ form.submit() }}</p>
+    </form>
 </div>
 {% endblock %}

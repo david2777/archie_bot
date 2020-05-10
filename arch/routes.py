@@ -1,9 +1,9 @@
 from datetime import date
 
-from flask import render_template, request, jsonify
+import flask
 from sqlalchemy import or_
 
-from arch import app, models, db
+from arch import app, models, db, forms
 from arch import utils
 
 
@@ -20,48 +20,49 @@ def log_and_return_error(error, *args, exception=False):
 @app.route('/')
 @app.route('/index.html')
 def index():
-    user = models.User.query.get(1)
-
-    data = {}
-    dogs = models.Dog.query.all()
-    for d in dogs:
-        events = d.events.all()
-        data[d] = events
-
-    kwargs = {'user': user,
+    kwargs = {'user': models.User.query.get(1),
               'title': 'Home',
               'time_of_day': utils.get_tod(),
               'today': date.today().strftime('%m/%d/%Y'),
-              'data': data}
+              'events': models.Event.query.all()}
 
-    return render_template('index.html', **kwargs)
+    return flask.render_template('index.html', **kwargs)
 
 
 @app.route('/edit_event/<event_id>.html')
 def edit_event(event_id):
     event = models.Event.query.get(event_id)
-    return render_template('edit_event.html', event=event)
+    return flask.render_template('edit_event.html', event=event)
 
 
-@app.route('/add_event.html')
+@app.route('/add_event.html', methods=['GET', 'POST'])
 def add_event():
-    return render_template('add_event.html')
+    form = forms.AddEventForm(flask.request.form)
+    app.logger.info('%s', form.validate())
+    if flask.request.method == 'POST':
+        for f in [form.user, form.dog, form.event, form.start_time, form.end_time, form.accident, form.note, form.submit]:
+            app.logger.info(f.errors)
+    if flask.request.method == "POST" and form.validate():
+        app.logger.info('Submitted')
+        flask.flash('Submitted {}'.format(form.note.data))
+        return flask.redirect(flask.url_for('index'))
+    return flask.render_template('add_event.html', form=form)
 
 
 @app.route('/add_event_webhook.html', methods=['POST', 'GET'])
 def add_event_webhook():
-    if request.method == 'GET':
+    if flask.request.method == 'GET':
         return '<h1>This is a simple webhook for adding events</h1>'
 
     # Get JSON Data
     try:
-        data = request.get_json()
+        data = flask.request.get_json()
     except Exception:
         return log_and_return_error("Bad JSON Data", exception=True)
 
     # If no JSON data, try args
     if not data:
-        data = request.args
+        data = flask.request.args
         if not data:
             return log_and_return_error('No Data Passed')
 

@@ -63,7 +63,7 @@ class Event(db.Model):
 
     @property
     def event_string(self):
-        return self.event_id.name.capitalize()
+        return '{} - {}'.format(self.event_id.name.capitalize(), self.dog.name)
 
     @property
     def event_info(self):
