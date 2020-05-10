@@ -29,6 +29,11 @@ def index():
     return flask.render_template('index.html', **kwargs)
 
 
+@app.route('/stats.html')
+def stats():
+    return flask.render_template('stats.html')
+
+
 @app.route('/edit_event/<event_id>.html')
 def edit_event(event_id):
     event = models.Event.query.get(event_id)

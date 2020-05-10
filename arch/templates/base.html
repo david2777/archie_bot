@@ -1,38 +1,54 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        {% block head %}
-        <!-- Required meta tags -->
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<head>
+    {% block head %}
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-        {% block styles %}
-        <!-- Bootstrap CSS -->
-        {{ bootstrap.load_css() }}
-        <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-        {% endblock %}
+    {% block styles %}
+    <!-- Bootstrap CSS -->
+    {{ bootstrap.load_css() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    {% endblock %}
 
-        <title>{% block title %}{% endblock %}</title>
-        {% endblock %}
-    </head>
-    <body>
-        {% block navbar %}
+    <title>{% block title %}{% endblock %}</title>
 
-        <nav class="navbar navbar-light bg-light" style="margin-bottom: 15px">
-            <div class="container d-inline">
-            <a class="navbar-brand mb-0" href="{{ url_for('index') }}">ArchieBot</a>
+    {% endblock %}
+</head>
+<body>
+{% block navbar %}
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light" style="margin-bottom: 15px">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('index') }}">ArchieBot</a>
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item">
+                <a id="index" class="nav-link" href="{{ url_for('index') }}">Home</a>
+            </li>
+            <li class="nav-item">
+                <a id="stats" class="nav-link" href="{{ url_for('stats') }}">Stats</a>
+            </li>
+        </ul>
+        <form class="form-inline my-2 my-lg-0">
             <a class="btn btn-outline-success my-2 my-sm-0" role="button" type="button" href="{{ url_for('add_event') }}">Add Event</a>
-            </div>
-        </nav>
+        </form>
+    </div>
+</nav>
 
-        {% endblock %}
+{% endblock %}
 
-        <!-- Your page content -->
-        {% block content %}{% endblock %}
+<!-- Your page content -->
+{% block content %}{% endblock %}
 
-        {% block scripts %}
-        <!-- Optional JavaScript -->
-        {{ bootstrap.load_js() }}
-        {% endblock %}
-    </body>
+{% block scripts %}
+<!-- Optional JavaScript -->
+{{ bootstrap.load_js() }}
+<script>
+    $(document).ready(function () {
+        $("#{{request.endpoint}}").parent().addClass("active");
+    })
+</script>
+{% endblock %}
+</body>
 </html>
