@@ -1,5 +1,7 @@
+import datetime
 from enum import Enum, auto
-from datetime import datetime, date
+
+import pytz
 
 from arch import db
 
@@ -57,12 +59,28 @@ class Event(db.Model):
     # Optional
     display = db.Column(db.Boolean, default=True)
     note = db.Column(db.String(128))
-    start_time = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    start_time = db.Column(db.DateTime, index=True, default=datetime.datetime.utcnow)
     end_time = db.Column(db.DateTime)
     is_accident = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
         return '<Event {} [{}]>'.format(self.event_id, self.event_enum)
+
+    @property
+    def start_time_local(self):
+        if self.start_time:
+            tz = pytz.timezone("America/Los_Angeles")
+            utc = pytz.timezone('UTC')
+            value = utc.localize(self.start_time, is_dst=None).astimezone(pytz.utc)
+            return value.astimezone(tz)
+
+    @property
+    def end_time_local(self):
+        if self.end_time:
+            tz = pytz.timezone("America/Los_Angeles")
+            utc = pytz.timezone('UTC')
+            value = utc.localize(self.end_time, is_dst=None).astimezone(pytz.utc)
+            return value.astimezone(tz)
 
     @property
     def event_type(self):
@@ -89,12 +107,12 @@ class Event(db.Model):
         note_string = ''
         if self.note:
             note_string = ' - {}'.format(self.note)
-        nice_time = self.start_time.strftime("%I:%M %p")
+        nice_time = self.start_time_local.strftime("%I:%M %p")
         return '{0} @ {1}{2}'.format(self.user.username, nice_time, note_string)
 
 
 def add_test_data():
-    t = datetime.fromtimestamp
+    t = datetime.datetime.utcfromtimestamp
 
     # Users
     david = User(username='David')
@@ -111,47 +129,47 @@ def add_test_data():
     db.session.add(evil_archie)
 
     # Events
-    e = Event(user=david, event_enum=EventEnum.EAT, start_time=t(15873966000))
+    e = Event(user=david, event_enum=EventEnum.EAT, start_time=t(1587398400))
     e.dogs.append(archie)
     e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user=david, event_enum=EventEnum.CLOMIPRAMINE, start_time=t(15873966001))
+    e = Event(user=david, event_enum=EventEnum.CLOMIPRAMINE, start_time=t(1587398400))
     e.dogs.append(archie)
     e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user=david, event_enum=EventEnum.WALK, start_time=t(1587399300), end_time=t(1587400645))
+    e = Event(user=david, event_enum=EventEnum.WALK, start_time=t(1587400200), end_time=t(1587402000))
     e.dogs.append(archie)
     e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user=david, event_enum=EventEnum.PEE, start_time=t(1587399745))
+    e = Event(user=david, event_enum=EventEnum.PEE, start_time=t(1587401100))
     e.dogs.append(archie)
     db.session.add(e)
 
-    e = Event(user=david, event_enum=EventEnum.POOP, start_time=t(1587399925))
+    e = Event(user=david, event_enum=EventEnum.POOP, start_time=t(1587401400))
     e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user=judy, event_enum=EventEnum.PLAY, start_time=t(1587405205), end_time=t(1587406285),
+    e = Event(user=judy, event_enum=EventEnum.PLAY, start_time=t(1587408600), end_time=t(1587409920),
               note='Played fetch and rope tug')
     e.dogs.append(archie)
     db.session.add(e)
 
-    e = Event(user=judy, event_enum=EventEnum.PEE, start_time=t(1587409345), is_accident=True)
+    e = Event(user=judy, event_enum=EventEnum.PEE, start_time=t(1587409980), is_accident=True)
     e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user=judy, event_enum=EventEnum.BATH, start_time=t(1587419425))
+    e = Event(user=judy, event_enum=EventEnum.BATH, start_time=t(1587415980))
     e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user=judy, event_enum=EventEnum.GROOM, start_time=t(1587419425))
+    e = Event(user=judy, event_enum=EventEnum.GROOM, start_time=t(1587419580))
     e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user=judy, event_enum=EventEnum.TRAINING, start_time=t(1587428545), end_time=t(1587430405), note='Stay')
+    e = Event(user=judy, event_enum=EventEnum.TRAINING, start_time=t(1587421980), end_time=t(1587423720), note='Stay')
     e.dogs.append(archie)
     db.session.add(e)
 

@@ -26,7 +26,6 @@ def index():
               'time_of_day': utils.get_tod(),
               'today': date.today().strftime('%m/%d/%Y'),
               'events': events}
-
     return flask.render_template('index.html', **kwargs)
 
 
