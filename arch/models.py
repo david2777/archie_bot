@@ -57,7 +57,6 @@ class Event(db.Model):
     event_enum = db.Column(db.Enum(EventEnum))
     dogs = db.relationship('Dog', secondary=association_table)
     # Optional
-    display = db.Column(db.Boolean, default=True)
     note = db.Column(db.String(128))
     start_time = db.Column(db.DateTime, index=True, default=datetime.datetime.utcnow)
     end_time = db.Column(db.DateTime)

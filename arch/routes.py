@@ -45,12 +45,11 @@ def get_time_in_utc(form):
 @app.route('/')
 @app.route('/index.html')
 def index():
-    events = [e for e in models.Event.query.all() if e.display]
     kwargs = {'user': models.User.query.get(1),
               'title': 'Home',
               'time_of_day': utils.get_tod(),
               'today': datetime.date.today().strftime('%m/%d/%Y'),
-              'events': events}
+              'events': models.Event.query.all()}
     return flask.render_template('index.html', **kwargs)
 
 
@@ -66,8 +65,8 @@ def edit_event(event_id):
         flask.flash('Cannot find event {} to edit'.format(event_id))
         return flask.redirect(flask.url_for('index'))
 
-    # Create form and set defaults from the loaded event
     f = forms.EventForm(flask.request.form)
+    # Set defaults from the loaded event
     if flask.request.method == 'GET':
         f.user.data = event.user_id
         f.dog.data = [d.dog_id for d in event.dogs]
@@ -99,6 +98,20 @@ def edit_event(event_id):
         return flask.redirect(flask.url_for('index'))
 
     return flask.render_template('edit_event.html', form=f, event=event)
+
+
+@app.route('/delete_event/<event_id>.html', methods=['GET', 'POST'])
+def delete_event(event_id):
+    event = models.Event.query.get(event_id)
+    if not event:
+        flask.flash('Cannot find event {} to delete'.format(event_id))
+        return flask.redirect(flask.url_for('index'))
+    if flask.request.method == 'POST':
+        db.session.delete(event)
+        db.session.commit()
+        flask.flash('Deleted event {}'.format(event_id))
+        return flask.redirect(flask.url_for('index'))
+    return flask.render_template('delete_event.html', event=event)
 
 
 @app.route('/add_event.html', methods=['GET', 'POST'])
