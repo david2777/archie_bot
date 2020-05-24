@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}ArchieBot - Edit Event{% endblock %}
+{% block title %}ArchieBot - Edit Event {{ event.event_id }}{% endblock %}
 
 {% block content %}
 <div class="container">
-    <h1>Editing Event</h1>
-    <h3>id: {{ event.event_id }}</h3>
-    <h3>user: {{ event.user.username }}</h3>
-    <h3>dogs: {{ event.dogs }}</h3>
-    <h3>event_enum: {{ event.event_enum.name }}</h3>
-    <h3>note: {{ event.note }}</h3>
-    <h3>timestamp: {{ event.timestamp }}</h3>
-    <h3>is_accident: {{ event.is_accident }}</h3>
+    <h5>Editing Event:</h5>
+    {% include 'partials/event_item.html' %}
+    <form class="form" role="form" action="" method="post" novalidate>
+        {% from 'bootstrap/form.html' import render_form %}
+        {{ form.hidden_tag() }}
+        {{ form.csrf_token() }}
+        {{ render_form(form) }}
+    </form>
 </div>
 {% endblock %}

@@ -18,6 +18,30 @@ def log_and_return_error(error, *args, exception=False):
     return str(result)
 
 
+def get_time_in_utc(form):
+    date = form.date.data if form.date.data else datetime.date.today()
+    tz = pytz.timezone("America/Los_Angeles")
+    start_time_utc = None
+    end_time_utc = None
+
+    if form.start_time.data:
+        start_time = datetime.datetime.combine(date, form.start_time.data)
+    else:
+        start_time = datetime.datetime.combine(date, datetime.datetime.now().time())
+
+    if form.end_time.data:
+        end_time = datetime.datetime.combine(date, form.end_time.data)
+    else:
+        end_time = None
+
+    if start_time:
+        start_time_utc = tz.localize(start_time).astimezone(pytz.utc)
+    if end_time:
+        end_time_utc = tz.localize(end_time).astimezone(pytz.utc)
+
+    return start_time_utc, end_time_utc
+
+
 @app.route('/')
 @app.route('/index.html')
 def index():
@@ -35,31 +59,55 @@ def stats():
     return flask.render_template('stats.html')
 
 
-@app.route('/edit_event/<event_id>.html')
+@app.route('/edit_event/<event_id>.html', methods=['GET', 'POST'])
 def edit_event(event_id):
     event = models.Event.query.get(event_id)
-    return flask.render_template('edit_event.html', event=event)
+    if not event:
+        flask.flash('Cannot find event {} to edit'.format(event_id))
+        return flask.redirect(flask.url_for('index'))
+
+    # Create form and set defaults from the loaded event
+    f = forms.EventForm(flask.request.form)
+    if flask.request.method == 'GET':
+        f.user.data = event.user_id
+        f.dog.data = [d.dog_id for d in event.dogs]
+        f.event.data = event.event_enum.name
+        if event.start_time_local:
+            f.date.data = event.start_time_local.date()
+            f.start_time.data = event.start_time_local.time()
+        if event.end_time_local:
+            f.end_time.data = event.end_time_local.time()
+        f.note.data = event.note
+        f.accident.data = event.is_accident
+
+    if f.validate_on_submit():
+        app.logger.info('Submission Validated')
+        start_time_utc, end_time_utc = get_time_in_utc(f)
+        event.user_id = int(f.user.data)
+        event.event_enum = models.EventEnum[f.event.data]
+        event.start_time = start_time_utc
+        event.end_time = end_time_utc
+        event.note = f.note.data if f.note.data else None
+        event.is_accident = f.accident.data
+
+        dogs = models.Dog.query.filter(models.Dog.dog_id.in_(tuple(f.dog.data)))
+        event.dogs = list(dogs)
+
+        db.session.commit()
+
+        flask.flash('Edited Event: {}'.format(event.event_id))
+        return flask.redirect(flask.url_for('index'))
+
+    return flask.render_template('edit_event.html', form=f, event=event)
 
 
 @app.route('/add_event.html', methods=['GET', 'POST'])
 def add_event():
-    f = forms.AddEventForm(flask.request.form)
+    f = forms.EventForm(flask.request.form)
     if f.validate_on_submit():
         app.logger.info('Submission Validated')
         
-        date = f.date.data if f.date.data else datetime.date.today()
-        if f.start_time.data:
-            start_time = datetime.datetime.combine(date, f.start_time.data)
-        else:
-            start_time = datetime.datetime.combine(date, datetime.datetime.now().time())
-        if f.end_time.data:
-            end_time = datetime.datetime.combine(date, f.end_time.data)
-        else:
-            end_time = datetime.datetime.combine(date, datetime.datetime.now().time())
-
-        tz = pytz.timezone("America/Los_Angeles")
-        start_time_utc = tz.localize(start_time).astimezone(pytz.utc)
-        end_time_utc = tz.localize(end_time).astimezone(pytz.utc)
+        start_time_utc, end_time_utc = get_time_in_utc(f)
 
         e = models.Event(user_id=int(f.user.data),
                          event_enum=models.EventEnum[f.event.data],
@@ -69,7 +117,7 @@ def add_event():
                          is_accident=f.accident.data)
 
         dogs = models.Dog.query.filter(models.Dog.dog_id.in_(tuple(f.dog.data)))
-        e.dogs += dogs
+        e.dogs = list(dogs)
 
         db.session.add(e)
         db.session.commit()

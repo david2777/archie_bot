@@ -8,7 +8,7 @@ from flask_wtf import FlaskForm
 from arch import models
 
 
-class AddEventForm(FlaskForm):
+class EventForm(FlaskForm):
     user = wtforms.SelectField('User', choices=[(1, 'David'), (2, 'Judy')], coerce=int)
     dog = wtforms.SelectMultipleField('Dog', choices=[(1, 'Archie'), (2, 'EvilArchie')], coerce=int,
                                       validators=[validators.data_required()])
@@ -19,4 +19,4 @@ class AddEventForm(FlaskForm):
     end_time = html5.TimeField('End Time', validators=[validators.Optional()], default=None)
     note = wtforms.StringField('Note', default=None)
     accident = wtforms.BooleanField('Accident?')
-    submit = wtforms.SubmitField('Add Event')
+    submit = wtforms.SubmitField('Submit')
