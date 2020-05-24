@@ -13,3 +13,7 @@
 .bath, .groom {
     background-color: #C7CEEA;
 }
+
+.event_shadow {
+  box-shadow: 0 0 10px #ccc;
+}

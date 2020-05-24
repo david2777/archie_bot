@@ -1,3 +1,5 @@
+import datetime
+
 import wtforms
 from wtforms import validators
 from wtforms.fields import html5
@@ -12,7 +14,8 @@ class AddEventForm(FlaskForm):
                                       validators=[validators.data_required()])
     choices = [(str(i.name), str(i.name).capitalize()) for i in models.EventEnum]
     event = wtforms.SelectField('Event', choices=choices)
-    start_time = html5.TimeField('Start Time', validators=[validators.Optional()], default=None)
+    date = html5.DateField('Date', validators=[validators.Optional()], default=datetime.date.today)
+    start_time = html5.TimeField('Start Time', validators=[validators.Optional()], default=datetime.datetime.now())
     end_time = html5.TimeField('End Time', validators=[validators.Optional()], default=None)
     note = wtforms.StringField('Note', default=None)
     accident = wtforms.BooleanField('Accident?')

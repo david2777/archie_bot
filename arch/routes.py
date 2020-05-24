@@ -1,5 +1,6 @@
-from datetime import date
+import datetime
 
+import pytz
 import flask
 from sqlalchemy import or_
 
@@ -24,7 +25,7 @@ def index():
     kwargs = {'user': models.User.query.get(1),
               'title': 'Home',
               'time_of_day': utils.get_tod(),
-              'today': date.today().strftime('%m/%d/%Y'),
+              'today': datetime.date.today().strftime('%m/%d/%Y'),
               'events': events}
     return flask.render_template('index.html', **kwargs)
 
@@ -45,11 +46,25 @@ def add_event():
     f = forms.AddEventForm(flask.request.form)
     if f.validate_on_submit():
         app.logger.info('Submission Validated')
+        
+        date = f.date.data if f.date.data else datetime.date.today()
+        if f.start_time.data:
+            start_time = datetime.datetime.combine(date, f.start_time.data)
+        else:
+            start_time = datetime.datetime.combine(date, datetime.datetime.now().time())
+        if f.end_time.data:
+            end_time = datetime.datetime.combine(date, f.end_time.data)
+        else:
+            end_time = datetime.datetime.combine(date, datetime.datetime.now().time())
+
+        tz = pytz.timezone("America/Los_Angeles")
+        start_time_utc = tz.localize(start_time).astimezone(pytz.utc)
+        end_time_utc = tz.localize(end_time).astimezone(pytz.utc)
 
         e = models.Event(user_id=int(f.user.data),
                          event_enum=models.EventEnum[f.event.data],
-                         start_time=f.start_time.data if f.start_time.data else None,
-                         end_time=f.end_time.data if f.end_time.data else None,
+                         start_time=start_time_utc,
+                         end_time=end_time_utc,
                          note=f.note.data if f.note.data else None,
                          is_accident=f.accident.data)
 
