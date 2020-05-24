@@ -12,8 +12,8 @@ class EventForm(FlaskForm):
     user = wtforms.SelectField('User', choices=[(1, 'David'), (2, 'Judy')], coerce=int)
     dog = wtforms.SelectMultipleField('Dog', choices=[(1, 'Archie'), (2, 'EvilArchie')], coerce=int,
                                       validators=[validators.data_required()])
-    choices = [(str(i.name), str(i.name).capitalize()) for i in models.EventEnum]
-    event = wtforms.SelectField('Event', choices=choices)
+    choices = [(i.id, str(i.name).capitalize()) for i in models.EventType.query.all()]
+    event = wtforms.SelectField('Event', choices=choices, coerce=int)
     date = html5.DateField('Date', validators=[validators.Optional()], default=datetime.date.today)
     start_time = html5.TimeField('Start Time', validators=[validators.Optional()], default=datetime.datetime.now())
     end_time = html5.TimeField('End Time', validators=[validators.Optional()], default=None)

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 401f6f3b5310
+Revision ID: 45f5d40500ca
 Revises: 
-Create Date: 2020-05-24 16:12:39.563697
+Create Date: 2020-05-24 16:46:17.663572
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '401f6f3b5310'
+revision = '45f5d40500ca'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -25,6 +25,12 @@ def upgrade():
     sa.PrimaryKeyConstraint('dog_id')
     )
     op.create_index(op.f('ix_dogs_name'), 'dogs', ['name'], unique=True)
+    op.create_table('event_types',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(), nullable=True),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('name')
+    )
     op.create_table('users',
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('username', sa.String(length=64), nullable=True),
@@ -35,11 +41,12 @@ def upgrade():
     op.create_table('events',
     sa.Column('event_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('event_enum', sa.Enum('TEST', 'OTHER', 'EAT', 'MEDICINE', 'CLOMIPRAMINE', 'TRIFEXIS', 'WALK', 'PLAY', 'TRAINING', 'BATH', 'GROOM', 'PEE', 'POOP', name='eventenum'), nullable=True),
+    sa.Column('event_type_id', sa.Integer(), nullable=True),
     sa.Column('note', sa.String(length=128), nullable=True),
     sa.Column('start_time', sa.DateTime(), nullable=True),
     sa.Column('end_time', sa.DateTime(), nullable=True),
     sa.Column('is_accident', sa.Boolean(), nullable=True),
+    sa.ForeignKeyConstraint(['event_type_id'], ['event_types.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ),
     sa.PrimaryKeyConstraint('event_id')
     )
@@ -60,6 +67,7 @@ def downgrade():
     op.drop_table('events')
     op.drop_index(op.f('ix_users_username'), table_name='users')
     op.drop_table('users')
+    op.drop_table('event_types')
     op.drop_index(op.f('ix_dogs_name'), table_name='dogs')
     op.drop_table('dogs')
     # ### end Alembic commands ###

@@ -70,7 +70,7 @@ def edit_event(event_id):
     if flask.request.method == 'GET':
         f.user.data = event.user_id
         f.dog.data = [d.dog_id for d in event.dogs]
-        f.event.data = event.event_enum.name
+        f.event.data = event.event_type_id
         if event.start_time_local:
             f.date.data = event.start_time_local.date()
             f.start_time.data = event.start_time_local.time()
@@ -83,7 +83,7 @@ def edit_event(event_id):
         app.logger.info('Submission Validated')
         start_time_utc, end_time_utc = get_time_in_utc(f)
         event.user_id = int(f.user.data)
-        event.event_enum = models.EventEnum[f.event.data]
+        event.event_type_id = f.event.data
         event.start_time = start_time_utc
         event.end_time = end_time_utc
         event.note = f.note.data if f.note.data else None
@@ -123,7 +123,7 @@ def add_event():
         start_time_utc, end_time_utc = get_time_in_utc(f)
 
         e = models.Event(user_id=int(f.user.data),
-                         event_enum=models.EventEnum[f.event.data],
+                         event_type_id=f.event.data,
                          start_time=start_time_utc,
                          end_time=end_time_utc,
                          note=f.note.data if f.note.data else None,
@@ -203,18 +203,14 @@ def add_event_webhook():
         dog_object = dog_search[0]
 
     # Resolve Event ID
-    try:
-        event_enum = models.EventEnum(int(event))
-    except ValueError:
-        try:
-            event_enum = models.EventEnum[event]
-        except KeyError:
-            return log_and_return_error("Unable to resolve EventEnum from '%s'", event)
+    event_type = models.EventType.query.get(event)
+    if not event_type:
+        return log_and_return_error("Unable to resolve EventType from '%s'", event)
 
     # Get remainder of user data
     event_data = {'user': user_object,
                   'dog': dog_object,
-                  'event_enum': event_enum}
+                  'event_type': event_type}
 
     for check in ['note', 'timestamp', 'start_time', 'end_time', 'is_accident']:
         try:

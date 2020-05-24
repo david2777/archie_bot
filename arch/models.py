@@ -1,31 +1,20 @@
 import datetime
-from enum import Enum, auto
 
 import pytz
 
 from arch import db
 
 
-class EventEnum(Enum):
-    TEST = auto()
-    OTHER = auto()
-    EAT = auto()
-    MEDICINE = auto()
-    CLOMIPRAMINE = auto()
-    TRIFEXIS = auto()
-    WALK = auto()
-    PLAY = auto()
-    TRAINING = auto()
-    BATH = auto()
-    GROOM = auto()
-    PEE = auto()
-    POOP = auto()
-
-
 association_table = db.Table('assoc',
                              db.Column('event_id', db.Integer, db.ForeignKey('events.event_id')),
                              db.Column('dog_id', db.Integer, db.ForeignKey('dogs.dog_id'))
                              )
+
+
+class EventType(db.Model):
+    __tablename__ = 'event_types'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, unique=True)
 
 
 class User(db.Model):
@@ -54,8 +43,9 @@ class Event(db.Model):
     event_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
     user = db.relationship('User')
-    event_enum = db.Column(db.Enum(EventEnum))
     dogs = db.relationship('Dog', secondary=association_table)
+    event_type_id = db.Column(db.Integer, db.ForeignKey('event_types.id'))
+    event_type = db.relationship('EventType')
     # Optional
     note = db.Column(db.String(128))
     start_time = db.Column(db.DateTime, index=True, default=datetime.datetime.utcnow)
@@ -63,7 +53,7 @@ class Event(db.Model):
     is_accident = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
-        return '<Event {} [{}]>'.format(self.event_id, self.event_enum)
+        return '<Event {} [{}]>'.format(self.event_id, self.event_type.name)
 
     @property
     def start_time_local(self):
@@ -82,10 +72,6 @@ class Event(db.Model):
             return value.astimezone(tz)
 
     @property
-    def event_type(self):
-        return self.event_enum.name.lower()
-
-    @property
     def event_string(self):
         duration_string = ""
         if self.start_time and self.end_time:
@@ -95,7 +81,7 @@ class Event(db.Model):
             minutes, seconds = divmod(remainder, 60)
             duration_string = ' - {:01}:{:02}:{:02}'.format(int(hours), int(minutes), int(seconds))
         dogs = ', '.join([d.name for d in self.dogs])
-        return '{0} - {1}{2}'.format(self.event_enum.name.capitalize(), dogs, duration_string)
+        return '{0} - {1}{2}'.format(self.event_type.name.capitalize(), dogs, duration_string)
 
     @property
     def event_info(self):
@@ -127,48 +113,67 @@ def add_test_data():
     evil_archie = Dog(name='Evil Archie', birthday=t(1547467200))
     db.session.add(evil_archie)
 
+    # Event Types
+    event_types = [0]
+    for et in ['TEST',          # 1
+               'OTHER',         # 2
+               'EAT',           # 3
+               'MEDICINE',      # 4
+               'CLOMIPRAMINE',  # 5
+               'TRIFEXIS',      # 6
+               'WALK',          # 7
+               'PLAY',          # 8
+               'TRAINING',      # 9
+               'BATH',          # 10
+               'GROOM',         # 11
+               'PEE',           # 12
+               'POOP']:         # 13
+        e = EventType(name=et)
+        db.session.add(e)
+        event_types.append(e)
+
     # Events
-    e = Event(user=david, event_enum=EventEnum.EAT, start_time=t(1587398400))
+    e = Event(user=david, event_type=event_types[3], start_time=t(1587398400))
     e.dogs.append(archie)
     e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user=david, event_enum=EventEnum.CLOMIPRAMINE, start_time=t(1587398400))
+    e = Event(user=david, event_type=event_types[5], start_time=t(1587398400))
     e.dogs.append(archie)
     e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user=david, event_enum=EventEnum.WALK, start_time=t(1587400200), end_time=t(1587402000))
+    e = Event(user=david, event_type=event_types[7], start_time=t(1587400200), end_time=t(1587402000))
     e.dogs.append(archie)
     e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user=david, event_enum=EventEnum.PEE, start_time=t(1587401100))
+    e = Event(user=david, event_type=event_types[12], start_time=t(1587401100))
     e.dogs.append(archie)
     db.session.add(e)
 
-    e = Event(user=david, event_enum=EventEnum.POOP, start_time=t(1587401400))
+    e = Event(user=david, event_type=event_types[13], start_time=t(1587401400))
     e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user=judy, event_enum=EventEnum.PLAY, start_time=t(1587408600), end_time=t(1587409920),
+    e = Event(user=judy, event_type=event_types[8], start_time=t(1587408600), end_time=t(1587409920),
               note='Played fetch and rope tug')
     e.dogs.append(archie)
     db.session.add(e)
 
-    e = Event(user=judy, event_enum=EventEnum.PEE, start_time=t(1587409980), is_accident=True)
+    e = Event(user=judy, event_type=event_types[12], start_time=t(1587409980), is_accident=True)
     e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user=judy, event_enum=EventEnum.BATH, start_time=t(1587415980))
+    e = Event(user=judy, event_type=event_types[10], start_time=t(1587415980))
     e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user=judy, event_enum=EventEnum.GROOM, start_time=t(1587419580))
+    e = Event(user=judy, event_type=event_types[11], start_time=t(1587419580))
     e.dogs.append(evil_archie)
     db.session.add(e)
 
-    e = Event(user=judy, event_enum=EventEnum.TRAINING, start_time=t(1587421980), end_time=t(1587423720), note='Stay')
+    e = Event(user=judy, event_type=event_types[9], start_time=t(1587421980), end_time=t(1587423720), note='Stay')
     e.dogs.append(archie)
     db.session.add(e)
 
