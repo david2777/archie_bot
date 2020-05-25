@@ -27,6 +27,6 @@ ArchieBot test container[br][br]
   </Publish>
 </Networking>
 <WebUI>http://[IP]:[PORT:5000]</WebUI>
-<Banner>https://github.com/david2777/archie_bot/blob/master/arch/static/icon.png</Banner>
-<Icon>https://github.com/david2777/archie_bot/blob/master/arch/static/icon.png</Icon>
+<Banner>https://raw.githubusercontent.com/david2777/archie_bot/master/arch/static/icon.png</Banner>
+<Icon>https://raw.githubusercontent.com/david2777/archie_bot/master/arch/static/icon.png</Icon>
 </Container>
