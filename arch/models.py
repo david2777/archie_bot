@@ -4,20 +4,36 @@ import pytz
 
 from arch import db
 
-
-association_table = db.Table('assoc',
-                             db.Column('event_id', db.Integer, db.ForeignKey('events.event_id')),
-                             db.Column('dog_id', db.Integer, db.ForeignKey('dogs.dog_id'))
-                             )
+dog_to_event = db.Table('dog_to_event_table',  #: Association Table to connect Dog with Event objects
+                        db.Column('event_id', db.Integer, db.ForeignKey('events.event_id')),
+                        db.Column('dog_id', db.Integer, db.ForeignKey('dogs.dog_id')))
 
 
 class EventType(db.Model):
+    """Event Type Table
+
+    Attributes:
+        id (int): Primary Key (Unique)
+        name (str): Value (Unique)
+
+    """
     __tablename__ = 'event_types'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, unique=True)
 
+    def __repr__(self):
+        return '<EventType {} [{}]>'.format(self.id, self.name)
+
 
 class User(db.Model):
+    """User Table
+
+    Attributes:
+        user_id (int): Primary Key (Unique)
+        username (str): User Name (Unique) (Max 64)
+        password_hash (str): User Password Hash (max 128)
+
+    """
     __tablename__ = 'users'
     user_id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
@@ -28,6 +44,14 @@ class User(db.Model):
 
 
 class Dog(db.Model):
+    """Dog Table
+
+    Attributes:
+        dog_id (int): Primary Key (Unique)
+        name (str): Dog's Name (Unique) (Max 64)
+        birthday (date): Dog's Birthday
+
+    """
     __tablename__ = 'dogs'
     dog_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), index=True, unique=True)
@@ -38,12 +62,27 @@ class Dog(db.Model):
 
 
 class Event(db.Model):
+    """Event Table
+
+    Attributes:
+        event_id (int): Primary Key (Unique)
+        user_id (int): User ID of the user associated with the event
+        user (User): User object of the user associated with the event
+        dogs (list of Dog): List of Dog objects associated with the event
+        event_type_id (int): ID for the Event Type for this event
+        event_type (EventType): Event Type Object for this event
+        note (str): Note for the event
+        start_time (DateTime): Start time of the event in UTC
+        end_time (DateTime): End time for the event in UTC
+        is_accident (bool): Boolean if the event is an accident or not
+
+    """
     __tablename__ = 'events'
     # Required
     event_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
     user = db.relationship('User')
-    dogs = db.relationship('Dog', secondary=association_table)
+    dogs = db.relationship('Dog', secondary=dog_to_event)
     event_type_id = db.Column(db.Integer, db.ForeignKey('event_types.id'))
     event_type = db.relationship('EventType')
     # Optional
@@ -57,6 +96,12 @@ class Event(db.Model):
 
     @property
     def start_time_local(self):
+        """Returns the start_time in local time (default Los Angeles).
+
+        Returns:
+            datetime.datetime: start_time attribute converted to local time
+
+        """
         if self.start_time:
             tz = pytz.timezone("America/Los_Angeles")
             utc = pytz.timezone('UTC')
@@ -65,6 +110,12 @@ class Event(db.Model):
 
     @property
     def end_time_local(self):
+        """Returns the end_time in local time (default Los Angeles).
+
+        Returns:
+            datetime.datetime: end_time attribute converted to local time
+
+        """
         if self.end_time:
             tz = pytz.timezone("America/Los_Angeles")
             utc = pytz.timezone('UTC')
@@ -73,6 +124,14 @@ class Event(db.Model):
 
     @property
     def event_string(self):
+        """Returns a formatted string where '$Event - $Dogs $Duration' where $Duration is if the event has a start_time
+        and an end_time. Eg 'Walk - Archie, Evil Archie - 0:30:00' or 'Pee - Archie'. Used for event_time partial
+        template.
+
+        Returns:
+            str: Event header info string
+
+        """
         duration_string = ""
         if self.start_time and self.end_time:
             duration = self.end_time - self.start_time
@@ -84,11 +143,14 @@ class Event(db.Model):
         return '{0} - {1}{2}'.format(self.event_type.name.capitalize(), dogs, duration_string)
 
     @property
-    def event_info(self):
-        return self.note
-
-    @property
     def event_entry(self):
+        """Returns a formatted string where '$User @ $LocalTime - $Note'. Eg 'David @ 09:00 AM' or
+        'Judy @ 11:50 AM - Played fetch and rope tug'. Used in event_item partial template.
+
+        Returns:
+            str: Event entry info string
+
+        """
         note_string = ''
         if self.note:
             note_string = ' - {}'.format(self.note)
@@ -97,6 +159,15 @@ class Event(db.Model):
 
 
 def add_test_data():
+    """Basic function for seeding the database.
+
+    TODO:
+        Clean this up
+
+    Returns:
+        None
+
+    """
     t = datetime.datetime.utcfromtimestamp
 
     # Users
@@ -115,19 +186,19 @@ def add_test_data():
 
     # Event Types
     event_types = [0]
-    for et in ['TEST',          # 1
-               'OTHER',         # 2
-               'EAT',           # 3
-               'MEDICINE',      # 4
+    for et in ['TEST',  # 1
+               'OTHER',  # 2
+               'EAT',  # 3
+               'MEDICINE',  # 4
                'CLOMIPRAMINE',  # 5
-               'TRIFEXIS',      # 6
-               'WALK',          # 7
-               'PLAY',          # 8
-               'TRAINING',      # 9
-               'BATH',          # 10
-               'GROOM',         # 11
-               'PEE',           # 12
-               'POOP']:         # 13
+               'TRIFEXIS',  # 6
+               'WALK',  # 7
+               'PLAY',  # 8
+               'TRAINING',  # 9
+               'BATH',  # 10
+               'GROOM',  # 11
+               'PEE',  # 12
+               'POOP']:  # 13
         e = EventType(name=et)
         db.session.add(e)
         event_types.append(e)
