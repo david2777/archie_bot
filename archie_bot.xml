@@ -13,7 +13,7 @@ ArchieBot test container[br][br]
 </Description>
 <Registry>https://hub.docker.com/repository/docker/david2777/archie_bot</Registry>
 <GitHub>https://github.com/david2777/archie_bot</GitHub>
-<Repository>https://hub.docker.com/repository/docker/david2777/archie_bot</Repository>
+<Repository>david2777/archie_bot</Repository>
 <BindTime>true</BindTime>
 <Privileged>false</Privileged>
 <Networking>
