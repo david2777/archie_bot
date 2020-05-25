@@ -1,45 +1,10 @@
 import datetime
 
-import pytz
 import flask
 from sqlalchemy import or_
 
 from arch import app, models, db, forms
 from arch import utils
-
-
-def log_and_return_error(error, *args, exception=False):
-    result = {"success": "false"}
-    if exception:
-        app.logger.exception(error, *args)
-    else:
-        app.logger.error(error, *args)
-    result['error'] = error % tuple(*args)
-    return str(result)
-
-
-def get_time_in_utc(form):
-    date = form.date.data if form.date.data else datetime.date.today()
-    tz = pytz.timezone("America/Los_Angeles")
-    start_time_utc = None
-    end_time_utc = None
-
-    if form.start_time.data:
-        start_time = datetime.datetime.combine(date, form.start_time.data)
-    else:
-        start_time = datetime.datetime.combine(date, datetime.datetime.now().time())
-
-    if form.end_time.data:
-        end_time = datetime.datetime.combine(date, form.end_time.data)
-    else:
-        end_time = None
-
-    if start_time:
-        start_time_utc = tz.localize(start_time).astimezone(pytz.utc)
-    if end_time:
-        end_time_utc = tz.localize(end_time).astimezone(pytz.utc)
-
-    return start_time_utc, end_time_utc
 
 
 @app.route('/')
@@ -81,7 +46,7 @@ def edit_event(event_id):
 
     if f.validate_on_submit():
         app.logger.info('Submission Validated')
-        start_time_utc, end_time_utc = get_time_in_utc(f)
+        start_time_utc, end_time_utc = utils.get_time_in_utc(f)
         event.user_id = int(f.user.data)
         event.event_type_id = f.event.data
         event.start_time = start_time_utc
@@ -120,7 +85,7 @@ def add_event():
     if f.validate_on_submit():
         app.logger.info('Submission Validated')
         
-        start_time_utc, end_time_utc = get_time_in_utc(f)
+        start_time_utc, end_time_utc = utils.get_time_in_utc(f)
 
         e = models.Event(user_id=int(f.user.data),
                          event_type_id=f.event.data,
@@ -150,41 +115,41 @@ def add_event_webhook():
     try:
         data = flask.request.get_json()
     except Exception:
-        return log_and_return_error("Bad JSON Data", exception=True)
+        return utils.log_and_return_error("Bad JSON Data", exception=True)
 
     # If no JSON data, try args
     if not data:
         data = flask.request.args
         if not data:
-            return log_and_return_error('No Data Passed')
+            return utils.log_and_return_error('No Data Passed')
 
     # Check for required user inputs
     try:
         user = data['user']
     except KeyError:
-        return log_and_return_error("No 'user' value passed")
+        return utils.log_and_return_error("No 'user' value passed")
 
     try:
         dog = data['dog']
     except KeyError:
-        return log_and_return_error("No 'dog' value passed")
+        return utils.log_and_return_error("No 'dog' value passed")
 
     try:
         event = data['event']
     except KeyError:
-        return log_and_return_error("No 'event' value passed")
+        return utils.log_and_return_error("No 'event' value passed")
 
     # Resolve User
     try:
         or_filter = or_(models.User.username == user or models.User.user_id == user)
         user_search = models.User.query.filter(or_filter).all()
     except Exception:
-        return log_and_return_error("Bad query for user with '%s'", user, exception=True)
+        return utils.log_and_return_error("Bad query for user with '%s'", user, exception=True)
 
     if not user_search:
-        return log_and_return_error("Could not resolve User from '%s'", user)
+        return utils.log_and_return_error("Could not resolve User from '%s'", user)
     elif len(user_search) > 1:
-        return log_and_return_error("Found more than one User for '%s'", user)
+        return utils.log_and_return_error("Found more than one User for '%s'", user)
     else:
         user_object = user_search[0]
 
@@ -193,19 +158,19 @@ def add_event_webhook():
         or_filter = or_(models.Dog.name == dog or models.Dog.dog_id == dog)
         dog_search = models.Dog.query.filter(or_filter).all()
     except Exception:
-        return log_and_return_error("Bad query for dog with '%s'", dog, exception=True)
+        return utils.log_and_return_error("Bad query for dog with '%s'", dog, exception=True)
 
     if not dog_search:
-        return log_and_return_error("Could not resolve Dog from '%s'", dog)
+        return utils.log_and_return_error("Could not resolve Dog from '%s'", dog)
     elif len(dog_search) > 1:
-        return log_and_return_error("Found more than one Dog for '%s'", dog)
+        return utils.log_and_return_error("Found more than one Dog for '%s'", dog)
     else:
         dog_object = dog_search[0]
 
     # Resolve Event ID
     event_type = models.EventType.query.get(event)
     if not event_type:
-        return log_and_return_error("Unable to resolve EventType from '%s'", event)
+        return utils.log_and_return_error("Unable to resolve EventType from '%s'", event)
 
     # Get remainder of user data
     event_data = {'user': user_object,
