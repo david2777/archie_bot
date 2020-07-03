@@ -106,6 +106,16 @@ def add_event():
     return flask.render_template('add_event.html', form=f)
 
 
+@app.route('/start_walk.html')
+def start_walk():
+    walk = models.ActiveEvents.get_walk()
+    if walk:
+        flask.flash('There is already an active walk in progress...')
+    else:
+        flask.flash('Stared active walk')
+    return flask.redirect(flask.url_for('index'))
+
+
 @app.route('/add_event_webhook.html', methods=['POST', 'GET'])
 def add_event_webhook():
     if flask.request.method == 'GET':

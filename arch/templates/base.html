@@ -30,8 +30,9 @@
                 <a id="stats" class="nav-link" href="{{ url_for('stats') }}">Stats</a>
             </li>
         </ul>
-        <form class="form-inline my-2 my-lg-0">
-            <a class="btn btn-outline-success" role="button" href="{{ url_for('add_event') }}">Add Event</a>
+        <form class="my-2 my-lg-0">
+            <a class="btn btn-sm btn-outline-dark" role="button" href="{{ url_for('start_walk') }}">Start Walk</a>
+            <a class="btn btn-success" role="button" href="{{ url_for('add_event') }}">Add Event</a>
         </form>
     </div>
 </nav>

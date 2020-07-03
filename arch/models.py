@@ -9,6 +9,44 @@ dog_to_event = db.Table('dog_to_event_table',  #: Association Table to connect D
                         db.Column('dog_id', db.Integer, db.ForeignKey('dogs.dog_id')))
 
 
+class ActiveEvents(db.Model):
+    """Active Events Table
+
+    Attributes:
+        id (int): Primary Key (Unique)
+        event_id (int): Active Event Item ID
+        event (Event): Active Event Item
+
+    """
+    __tablename__ = 'active_events'
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('events.event_id'))
+    event = db.relationship('Event', lazy='joined', join_depth=3)
+
+    @classmethod
+    def get_walk(cls):
+        return cls.query.\
+            join(cls.event, aliased=True).\
+            join(Event.event_type, aliased=True).\
+            filter_by(name='WALK').\
+            first()
+
+    @classmethod
+    def add_walk(cls, event):
+        if event.event_type.name == 'WALK' and not ActiveEvents.get_active_walk():
+            record = cls(event=event)
+            db.session.add(record)
+            db.session.commit()
+            return record
+
+    @classmethod
+    def clear_walk(cls):
+        event = ActiveEvents.get_active_walk()
+        if event:
+            db.session.delete(event)
+            db.session.commit()
+
+
 class EventType(db.Model):
     """Event Type Table
 
