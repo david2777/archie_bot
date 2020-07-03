@@ -21,7 +21,7 @@ class ActiveEvents(db.Model):
     __tablename__ = 'active_events'
     id = db.Column(db.Integer, primary_key=True)
     event_id = db.Column(db.Integer, db.ForeignKey('events.event_id'))
-    event = db.relationship('Event', lazy='joined', join_depth=3)
+    event = db.relationship('Event')
 
     @classmethod
     def get_walk(cls):
