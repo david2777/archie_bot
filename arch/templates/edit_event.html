@@ -1,17 +1,23 @@
 {% extends "base.html" %}
 
-{% block title %}ArchieBot - Edit Event {{ event.event_id }}{% endblock %}
+{% block title %}ArchieBot - Edit Event {{ event.id }}{% endblock %}
 
 {% block content %}
 <div class="container">
     <h5>Editing Event:</h5>
     {% include 'partials/event_item.html' %}
     <form class="form" role="form" action="" method="post" novalidate>
-        {% from 'bootstrap/form.html' import render_form %}
+        {% from 'bootstrap/form.html' import render_form_row %}
         {{ form.hidden_tag() }}
         {{ form.csrf_token() }}
-        {{ render_form(form) }}
+        {{ render_form_row([form.user]) }}
+        {{ render_form_row([form.dog]) }}
+        {{ render_form_row([form.event]) }}
+        {{ render_form_row([form.start_time, form.end_time, form.date]) }}
+        {{ render_form_row([form.note]) }}
+        {{ render_form_row([form.accident]) }}
+        {{ render_form_row([form.submit]) }}
     </form>
-    <a href="{{ url_for('delete_event', event_id=event.event_id) }}" role="button" class="btn btn-danger" style="margin-top: 15px;">Delete</a>
+    <a href="{{ url_for('delete_event', event_id=event.id) }}" role="button" class="btn btn-danger" style="margin-top: 15px;">Delete</a>
 </div>
 {% endblock %}

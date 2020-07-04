@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}ArchieBot - Delete Event {{ event.event_id }}{% endblock %}
+{% block title %}ArchieBot - Delete Event {{ event.id }}{% endblock %}
 
 {% block content %}
 <div class="container">
     <h5>Are you sure you want to delete the following event?</h5>
     {% include 'partials/event_item.html' %}
-    <form action="{{ url_for('delete_event', event_id=event.event_id) }}" method="get">
+    <form action="{{ url_for('delete_event', event_id=event.id) }}" method="get">
         <button role="button" class="btn btn-danger" style="margin-top: 15px;" type="submit" formmethod="post" value="delete">Delete</button>
     </form>
 </div>

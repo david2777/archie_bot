@@ -6,10 +6,16 @@
 <div class="container">
     <h5>Adding Event</h5>
     <form class="form" role="form" action="" method="post" novalidate>
-        {% from 'bootstrap/form.html' import render_form %}
+        {% from 'bootstrap/form.html' import render_form_row %}
         {{ form.hidden_tag() }}
         {{ form.csrf_token() }}
-        {{ render_form(form) }}
+        {{ render_form_row([form.user]) }}
+        {{ render_form_row([form.dog]) }}
+        {{ render_form_row([form.event]) }}
+        {{ render_form_row([form.start_time, form.end_time, form.date]) }}
+        {{ render_form_row([form.note]) }}
+        {{ render_form_row([form.accident]) }}
+        {{ render_form_row([form.submit]) }}
     </form>
 </div>
 {% endblock %}

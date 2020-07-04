@@ -10,7 +10,7 @@ from arch import utils
 @app.route('/')
 @app.route('/index.html')
 def index():
-    kwargs = {'user': models.User.query.get(1),
+    kwargs = {'user': models.Users.query.get(1),
               'title': 'Home',
               'time_of_day': utils.get_tod(),
               'today': datetime.date.today().strftime('%m/%d/%Y'),
@@ -34,7 +34,7 @@ def edit_event(event_id):
     # Set defaults from the loaded event
     if flask.request.method == 'GET':
         f.user.data = event.user_id
-        f.dog.data = [d.dog_id for d in event.dogs]
+        f.dog.data = [d.id for d in event.dogs]
         f.event.data = event.event_type_id
         if event.start_time_local:
             f.date.data = event.start_time_local.date()
@@ -54,12 +54,12 @@ def edit_event(event_id):
         event.note = f.note.data if f.note.data else None
         event.is_accident = f.accident.data
 
-        dogs = models.Dog.query.filter(models.Dog.dog_id.in_(tuple(f.dog.data)))
+        dogs = models.Dog.query.filter(models.Dog.id.in_(tuple(f.dog.data)))
         event.dogs = list(dogs)
 
         db.session.commit()
 
-        flask.flash('Edited Event: {}'.format(event.event_id))
+        flask.flash('Edited Event: {}'.format(event.id))
         return flask.redirect(flask.url_for('index'))
 
     return flask.render_template('edit_event.html', form=f, event=event)
@@ -82,25 +82,26 @@ def delete_event(event_id):
 @app.route('/add_event.html', methods=['GET', 'POST'])
 def add_event():
     f = forms.EventForm(flask.request.form)
+    f.dog.data = [d[0] for d in f.dog_list]
     if f.validate_on_submit():
         app.logger.info('Submission Validated')
         
         start_time_utc, end_time_utc = utils.get_time_in_utc(f)
 
-        e = models.Event(user_id=int(f.user.data),
-                         event_type_id=f.event.data,
-                         start_time=start_time_utc,
-                         end_time=end_time_utc,
-                         note=f.note.data if f.note.data else None,
-                         is_accident=f.accident.data)
+        e = models.Event(user_id=f.user.data,
+                          event_type_id=f.event.data,
+                          start_time=start_time_utc,
+                          end_time=end_time_utc,
+                          note=f.note.data if f.note.data else None,
+                          is_accident=f.accident.data)
 
-        dogs = models.Dog.query.filter(models.Dog.dog_id.in_(tuple(f.dog.data)))
+        dogs = models.Dog.query.filter(models.Dog.id.in_(tuple(f.dog.data)))
         e.dogs = list(dogs)
 
         db.session.add(e)
         db.session.commit()
 
-        flask.flash('Submitted Event: {}'.format(e.event_id))
+        flask.flash('Submitted Event: {}'.format(e.id))
         return flask.redirect(flask.url_for('index'))
 
     return flask.render_template('add_event.html', form=f)
@@ -108,7 +109,7 @@ def add_event():
 
 @app.route('/start_walk.html')
 def start_walk():
-    walk = models.ActiveEvents.get_walk()
+    walk = models.ActiveEvent.get_walk()
     if walk:
         flask.flash('There is already an active walk in progress...')
     else:
@@ -133,71 +134,15 @@ def add_event_webhook():
         if not data:
             return utils.log_and_return_error('No Data Passed')
 
-    # Check for required user inputs
-    try:
-        user = data['user']
-    except KeyError:
-        return utils.log_and_return_error("No 'user' value passed")
-
-    try:
-        dog = data['dog']
-    except KeyError:
-        return utils.log_and_return_error("No 'dog' value passed")
-
-    try:
-        event = data['event']
-    except KeyError:
-        return utils.log_and_return_error("No 'event' value passed")
-
-    # Resolve User
-    try:
-        or_filter = or_(models.User.username == user or models.User.user_id == user)
-        user_search = models.User.query.filter(or_filter).all()
-    except Exception:
-        return utils.log_and_return_error("Bad query for user with '%s'", user, exception=True)
-
-    if not user_search:
-        return utils.log_and_return_error("Could not resolve User from '%s'", user)
-    elif len(user_search) > 1:
-        return utils.log_and_return_error("Found more than one User for '%s'", user)
-    else:
-        user_object = user_search[0]
-
-    # Resolve Dog
-    try:
-        or_filter = or_(models.Dog.name == dog or models.Dog.dog_id == dog)
-        dog_search = models.Dog.query.filter(or_filter).all()
-    except Exception:
-        return utils.log_and_return_error("Bad query for dog with '%s'", dog, exception=True)
-
-    if not dog_search:
-        return utils.log_and_return_error("Could not resolve Dog from '%s'", dog)
-    elif len(dog_search) > 1:
-        return utils.log_and_return_error("Found more than one Dog for '%s'", dog)
-    else:
-        dog_object = dog_search[0]
-
-    # Resolve Event ID
-    event_type = models.EventType.query.get(event)
-    if not event_type:
-        return utils.log_and_return_error("Unable to resolve EventType from '%s'", event)
-
-    # Get remainder of user data
-    event_data = {'user': user_object,
-                  'dog': dog_object,
-                  'event_type': event_type}
-
-    for check in ['note', 'timestamp', 'start_time', 'end_time', 'is_accident']:
-        try:
-            event_data[check] = data[check]
-        except KeyError:
-            pass
-
     # Create event and add to database
-    event = models.Event(**event_data)
+    event = models.Event(**data)
+
+    if isinstance(event, int):
+        db.session.rollback()
+        return utils.log_and_return_error('Error generating event')
 
     db.session.add(event)
     db.session.commit()
 
     app.logger.info(event)
-    return str({"success": "true", "event_id": event.event_id})
+    return str({"success": "true", "event_id": event.id})

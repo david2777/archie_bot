@@ -1,16 +1,19 @@
+import os
 import datetime
 
 import pytz
+from sqlalchemy import or_
 
-from arch import db
+import arch
+from arch import app, db
 
 dog_to_event = db.Table('dog_to_event_table',  #: Association Table to connect Dog with Event objects
-                        db.Column('event_id', db.Integer, db.ForeignKey('events.event_id')),
-                        db.Column('dog_id', db.Integer, db.ForeignKey('dogs.dog_id')))
+                        db.Column('event_id', db.Integer, db.ForeignKey('events.id')),
+                        db.Column('dog_id', db.Integer, db.ForeignKey('dogs.id')))
 
 
-class ActiveEvents(db.Model):
-    """Active Events Table
+class ActiveEvent(db.Model):
+    """Active Event Table
 
     Attributes:
         id (int): Primary Key (Unique)
@@ -20,7 +23,7 @@ class ActiveEvents(db.Model):
     """
     __tablename__ = 'active_events'
     id = db.Column(db.Integer, primary_key=True)
-    event_id = db.Column(db.Integer, db.ForeignKey('events.event_id'))
+    event_id = db.Column(db.Integer, db.ForeignKey('events.id'))
     event = db.relationship('Event')
 
     @classmethod
@@ -33,7 +36,7 @@ class ActiveEvents(db.Model):
 
     @classmethod
     def add_walk(cls, event):
-        if event.event_type.name == 'WALK' and not ActiveEvents.get_active_walk():
+        if event.event_type.name == 'WALK' and not ActiveEvent.get_active_walk():
             record = cls(event=event)
             db.session.add(record)
             db.session.commit()
@@ -41,7 +44,7 @@ class ActiveEvents(db.Model):
 
     @classmethod
     def clear_walk(cls):
-        event = ActiveEvents.get_active_walk()
+        event = ActiveEvent.get_active_walk()
         if event:
             db.session.delete(event)
             db.session.commit()
@@ -63,49 +66,49 @@ class EventType(db.Model):
         return '<EventType {} [{}]>'.format(self.id, self.name)
 
 
-class User(db.Model):
+class Users(db.Model):
     """User Table
 
     Attributes:
-        user_id (int): Primary Key (Unique)
+        id (int): Primary Key (Unique)
         username (str): User Name (Unique) (Max 64)
         password_hash (str): User Password Hash (max 128)
 
     """
     __tablename__ = 'users'
-    user_id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
     password_hash = db.Column(db.String(128))
 
     def __repr__(self):
-        return '<User {} [{}]>'.format(self.user_id, self.username)
+        return '<User {} [{}]>'.format(self.id, self.username)
 
 
 class Dog(db.Model):
     """Dog Table
 
     Attributes:
-        dog_id (int): Primary Key (Unique)
+        id (int): Primary Key (Unique)
         name (str): Dog's Name (Unique) (Max 64)
         birthday (date): Dog's Birthday
 
     """
     __tablename__ = 'dogs'
-    dog_id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), index=True, unique=True)
     birthday = db.Column(db.Date)
 
     def __repr__(self):
-        return '<Dog {} [{}]>'.format(self.dog_id, self.name)
+        return '<Dog {} [{}]>'.format(self.id, self.name)
 
 
 class Event(db.Model):
     """Event Table
 
     Attributes:
-        event_id (int): Primary Key (Unique)
+        id (int): Primary Key (Unique)
         user_id (int): User ID of the user associated with the event
-        user (User): User object of the user associated with the event
+        user (Users): User object of the user associated with the event
         dogs (list of Dog): List of Dog objects associated with the event
         event_type_id (int): ID for the Event Type for this event
         event_type (EventType): Event Type Object for this event
@@ -117,9 +120,9 @@ class Event(db.Model):
     """
     __tablename__ = 'events'
     # Required
-    event_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
-    user = db.relationship('User')
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user = db.relationship('Users')
     dogs = db.relationship('Dog', secondary=dog_to_event)
     event_type_id = db.Column(db.Integer, db.ForeignKey('event_types.id'))
     event_type = db.relationship('EventType')
@@ -130,7 +133,7 @@ class Event(db.Model):
     is_accident = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
-        return '<Event {} [{}]>'.format(self.event_id, self.event_type.name)
+        return '<Event {} [{}]>'.format(self.id, self.event_type.name)
 
     @property
     def start_time_local(self):
@@ -195,95 +198,166 @@ class Event(db.Model):
         nice_time = self.start_time_local.strftime("%I:%M %p")
         return '{0} @ {1}{2}'.format(self.user.username, nice_time, note_string)
 
+    @staticmethod
+    def event_factory(**kwargs):
+        data = {}
+        # Check inputs for required fields
+        try:
+            user = kwargs['user']
+        except KeyError:
+            app.logger.error("No 'user' value passed")
+            return -2
 
-def add_test_data():
-    """Basic function for seeding the database.
+        try:
+            dogs = kwargs['dogs']
+        except KeyError:
+            dogs = None
 
-    TODO:
-        Clean this up
+        try:
+            event_type = kwargs['event_type']
+        except KeyError:
+            app.logger.error("No 'event' value passed")
+            return -4
+
+        # Resolve User
+        try:
+            _user = Users.query.filter(or_(Users.username == user, Users.id == user)).first()
+        except Exception:
+            app.logger.exception("Bad query for user with '%s'", user)
+            return -5
+
+        if not _user:
+            app.logger.error("Could not resolve User from '%s'", user)
+            return -5
+        else:
+            data['user'] = _user
+
+        # Resolve Dog
+        if dogs is None:
+            data['dogs'] = Dog.query.all()
+        else:
+            for d in dogs:
+                try:
+                    _dog = Dog.query.filter(or_(Dog.name == d, Dog.id == d)).first()
+                except Exception:
+                    app.logger.exception("Bad query for dog with '%s'", d)
+                    return -6
+
+                if not _dog:
+                    app.logger.error("Could not resolve Dog from '%s'", d)
+                    return -6
+                else:
+                    try:
+                        data['dogs'].append(_dog)
+                    except KeyError:
+                        data['dogs'] = [_dog]
+
+        # Resolve Event Type
+        _event_type = EventType.query.filter(or_(EventType.name == event_type, EventType.id == event_type)).first()
+        if not _event_type:
+            app.logger.error("Unable to resolve EventType from '%s'", event_type)
+            return -7
+        data['event_type'] = _event_type
+
+        # Resolve other possible flags
+        for arg in ['note', 'is_accident']:
+            try:
+                data[arg] = kwargs[arg]
+            except KeyError:
+                pass
+
+        for t_arg in ['start_time', 'end_time']:
+            try:
+                t_data = kwargs[t_arg]
+                if isinstance(t_data, int):
+                    t_data = datetime.datetime.utcfromtimestamp(t_data)
+                data[t_arg] = t_data
+            except KeyError:
+                pass
+
+        # Instantiate and return
+        try:
+            ins = Event(**data)
+        except Exception:
+            app.logger.exception("Instantiation Error")
+            return -1
+        return ins
+
+
+def _convert_times(data):
+    """Check and convert datetime attrs from seed_data.yml
+
+    Args:
+        data (dict): Dict with datetime attrs (eg Dog, Event)
+
+    Returns:
+        dict: Data with datetime attrs converted from ints to datetime objects.
+
+    """
+    checks = ['birthday', 'start_time', 'end_time']
+    for k, v in data.items():
+        if k in checks:
+            data[k] = datetime.datetime.utcfromtimestamp(v)
+    return data
+
+
+def clear_db():
+    """Convenience function to drop all tables.
 
     Returns:
         None
 
     """
-    t = datetime.datetime.utcfromtimestamp
-
-    # Users
-    david = User(username='David')
-    db.session.add(david)
-
-    judy = User(username='Judy')
-    db.session.add(judy)
-
-    # Dogs
-    archie = Dog(name='Archie', birthday=t(1547467200))
-    db.session.add(archie)
-
-    evil_archie = Dog(name='Evil Archie', birthday=t(1547467200))
-    db.session.add(evil_archie)
-
-    # Event Types
-    event_types = [0]
-    for et in ['TEST',  # 1
-               'OTHER',  # 2
-               'EAT',  # 3
-               'MEDICINE',  # 4
-               'CLOMIPRAMINE',  # 5
-               'TRIFEXIS',  # 6
-               'WALK',  # 7
-               'PLAY',  # 8
-               'TRAINING',  # 9
-               'BATH',  # 10
-               'GROOM',  # 11
-               'PEE',  # 12
-               'POOP']:  # 13
-        e = EventType(name=et)
-        db.session.add(e)
-        event_types.append(e)
-
-    # Events
-    e = Event(user=david, event_type=event_types[3], start_time=t(1587398400))
-    e.dogs.append(archie)
-    e.dogs.append(evil_archie)
-    db.session.add(e)
-
-    e = Event(user=david, event_type=event_types[5], start_time=t(1587398400))
-    e.dogs.append(archie)
-    e.dogs.append(evil_archie)
-    db.session.add(e)
-
-    e = Event(user=david, event_type=event_types[7], start_time=t(1587400200), end_time=t(1587402000))
-    e.dogs.append(archie)
-    e.dogs.append(evil_archie)
-    db.session.add(e)
-
-    e = Event(user=david, event_type=event_types[12], start_time=t(1587401100))
-    e.dogs.append(archie)
-    db.session.add(e)
-
-    e = Event(user=david, event_type=event_types[13], start_time=t(1587401400))
-    e.dogs.append(evil_archie)
-    db.session.add(e)
-
-    e = Event(user=judy, event_type=event_types[8], start_time=t(1587408600), end_time=t(1587409920),
-              note='Played fetch and rope tug')
-    e.dogs.append(archie)
-    db.session.add(e)
-
-    e = Event(user=judy, event_type=event_types[12], start_time=t(1587409980), is_accident=True)
-    e.dogs.append(evil_archie)
-    db.session.add(e)
-
-    e = Event(user=judy, event_type=event_types[10], start_time=t(1587415980))
-    e.dogs.append(evil_archie)
-    db.session.add(e)
-
-    e = Event(user=judy, event_type=event_types[11], start_time=t(1587419580))
-    e.dogs.append(evil_archie)
-    db.session.add(e)
-
-    e = Event(user=judy, event_type=event_types[9], start_time=t(1587421980), end_time=t(1587423720), note='Stay')
-    e.dogs.append(archie)
-    db.session.add(e)
-
+    for model in [Event, EventType, Dog, Users, ActiveEvent]:
+        db.session.query(model).delete()
     db.session.commit()
+
+
+def seed_db():
+    """Basic function for seeding the database.
+
+    Returns:
+        None
+
+    """
+    import yaml
+
+    app.logger.info('Seeding DB')
+    if Users.query.first() or Dog.query.first() or EventType.query.first() or Event.query.first():
+        app.logger.info('One or more DBs is not empty, un able to seed.')
+        return
+
+    test_data_path = os.path.join(os.path.split(os.path.split(arch.__file__)[0])[0], 'seed_data.yml')
+    app.logger.info('Loading data from %s', test_data_path)
+    with open(test_data_path) as f:
+        data = yaml.safe_load(f)
+
+    app.logger.info('Adding Users')
+    for user in data['Users']:
+        _data = data['Users'][user]
+        u = Users(**_data)
+        db.session.add(u)
+
+    app.logger.info('Adding Dog')
+    for dog in data['Dog']:
+        _data = data['Dog'][dog]
+        _data = _convert_times(_data)
+        d = Dog(**_data)
+        db.session.add(d)
+
+    app.logger.info('Adding Event Types')
+    for event_type in data['EventType']:
+        et = EventType(name=event_type)
+        db.session.add(et)
+
+    app.logger.info('Adding Event')
+    for event in data['Event']:
+        _data = data['Event'][event]
+        e = Event.event_factory(**_data)
+        if not isinstance(e, int):
+            app.logger.info('%s', e)
+            db.session.add(e)
+
+    app.logger.info('Committing DB')
+    db.session.commit()
+    app.logger.info('Done!')

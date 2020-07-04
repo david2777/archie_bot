@@ -1,0 +1,82 @@
+Users:
+  David:
+    username: David
+  Judy:
+    username: Judy
+
+Dog:
+  Archie:
+    name: Archie
+    birthday: 1547467200
+  Eevee:
+    name: Eevee
+    birthday: 1547467200
+
+EventType:
+  - TEST
+  - OTHER
+  - EAT
+  - MEDICINE
+  - CLOMIPRAMINE
+  - TRIFEXIS
+  - WALK
+  - PLAY
+  - TRAINING
+  - BATH
+  - GROOM
+  - PEE
+  - POOP
+
+Event:
+  event_01:
+    user: David
+    event_type: EAT
+    start_time: 1587398400
+  event_02:
+    user: David
+    event_type: CLOMIPRAMINE
+    start_time: 1587398400
+  event_03:
+    user: David
+    event_type: WALK
+    start_time: 1587400200
+    end_time: 1587402000
+  event_04:
+    user: David
+    event_type: PEE
+    start_time: 1587401100
+  event_05:
+    user: David
+    event_type: POOP
+    start_time: 1587401400
+    dogs:
+      - Archie
+  event_06:
+    user: Judy
+    event_type: PLAY
+    start_time: 1587408600
+    end_time: 1587409920
+    note: Played fetch and rope tug
+    dogs:
+      - Eevee
+  event_07:
+    user: Judy
+    event_type: PEE
+    start_time: 1587409980
+    is_accident: true
+    dogs: 
+      - Archie
+  event_08:
+    user: Judy
+    event_type: BATH
+    start_time: 1587415980
+    dogs:
+      - Archie
+  event_09:
+    user: Judy
+    event_type: TRAINING
+    start_time: 1587421980
+    end_time: 1587423720
+    note: Stay
+    dogs:
+      - Archie
